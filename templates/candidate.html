@@ -3,24 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <title>Candidate Application</title>
+  <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/style.css') }}">
 </head>
 <body>
-  <h1>Candidate Application</h1>
+  <header>
+    <h1>Candidate Application</h1>
+  </header>
 
-  <label for="companySelect">Select Company (optional):</label>
-  <select id="companySelect">
-    <option value="">-- Just analyze resume --</option>
-  </select>
-  <br><br>
+  <div class="container">
+    <label for="companySelect"><strong>Select Company (optional):</strong></label>
+    <select id="companySelect">
+      <option value="">-- Just analyze resume --</option>
+    </select>
 
-  <input type="file" id="resumeFile" accept=".pdf,.docx">
-  <button onclick="submitResume()">Upload Resume</button>
+    <input type="file" id="resumeFile" accept=".pdf,.docx">
+    <button onclick="submitResume()">Upload Resume</button>
 
-  <div id="results" style="margin-top:20px;"></div>
+    <div id="results" style="margin-top:20px;"></div>
+    <p><a href="/">← Back Home</a></p>
+  </div>
 
   <script>
     async function loadCompanies() {
-      const res = await fetch("http://127.0.0.1:5000/companies");
+      const res = await fetch("/companies");
       const companies = await res.json();
       const select = document.getElementById("companySelect");
       companies.forEach(c => {
@@ -42,36 +47,66 @@
       const formData = new FormData();
       formData.append("file", fileInput.files[0]);
 
-      let endpoint = "http://127.0.0.1:5000/upload_resume";
+      let data;
 
-      // If company selected → use analyze/by-id after creating candidate
       if (companyId) {
-        // Step 1: Upload file and extract text
-        const uploadRes = await fetch(endpoint, { method: "POST", body: formData });
+        const uploadRes = await fetch("/upload_resume", { method: "POST", body: formData });
         const uploadData = await uploadRes.json();
         const resumeText = uploadData.extracted_text || "";
 
-        // Step 2: Send to analyze with company requirements
-        const res = await fetch("http://127.0.0.1:5000/analyze", {
+        const companyRes = await fetch(`/company/${companyId}`);
+        const companyData = await companyRes.json();
+
+        const res = await fetch("/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            requirements: (await (await fetch(`http://127.0.0.1:5000/company/${companyId}`)).json()).requirements,
+            requirements: companyData.requirements,
             resume_text: resumeText
           })
         });
-        const data = await res.json();
-        displayResults(data);
+        data = await res.json();
       } else {
-        // Just analyze resume quality
-        const res = await fetch(endpoint, { method: "POST", body: formData });
-        const data = await res.json();
-        displayResults(data);
+        const res = await fetch("/upload_resume", { method: "POST", body: formData });
+        data = await res.json();
       }
+
+      displayResults(data);
     }
 
     function displayResults(data) {
-      document.getElementById("results").innerHTML = "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+      const container = document.getElementById("results");
+      container.innerHTML = "";
+
+      if (data.fit_score !== undefined) {
+        const fitCard = document.createElement("div");
+        fitCard.className = "card";
+        fitCard.innerHTML = `
+          <h2>Fit Analysis</h2>
+          <p><strong>Fit Score:</strong> ${data.fit_score.toFixed(2)}%</p>
+          <div class="progress">
+            <div class="progress-bar" style="width:${data.fit_score}%">${data.fit_score.toFixed(1)}%</div>
+          </div>
+          <h3>Matched Skills:</h3>
+          <ul>${data.fit_breakdown.matched_skills.map(s => `<li>${s}</li>`).join("")}</ul>
+          <h3>Missing Skills:</h3>
+          <ul>${data.fit_breakdown.missing_skills.map(s => `<li>${s}</li>`).join("") || "<li>None</li>"}</ul>
+        `;
+        container.appendChild(fitCard);
+      }
+
+      if (data.resume_quality) {
+        const qualityCard = document.createElement("div");
+        qualityCard.className = "card";
+        qualityCard.innerHTML = `
+          <h2>Resume Quality</h2>
+          <h3>Grammar Issues</h3>
+          <ul>${data.resume_quality.grammar_issues.map(g => `<li>${g}</li>`).join("") || "<li>None</li>"}</ul>
+          <h3>Suggestions</h3>
+          <ul>${data.resume_quality.suggestions.map(s => `<li>${s}</li>`).join("") || "<li>No suggestions</li>"}</ul>
+        `;
+        container.appendChild(qualityCard);
+      }
     }
 
     loadCompanies();

@@ -2,105 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Resume Analyzer</title>
+  <title>Resume Screening System</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      display: flex;
-      justify-content: center;
-      padding: 30px;
-    }
-    .container {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      width: 600px;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #2c3e50;
-    }
-    input[type="file"] {
-      margin-bottom: 15px;
-    }
-    button {
+    /* Shared CSS */
+    body { font-family: Arial, sans-serif; background: #f5f7fa; margin: 0; padding: 0; }
+    header { background: #2c3e50; color: white; padding: 15px; text-align: center; }
+    .container { max-width: 600px; margin: 50px auto; text-align: center; }
+    h1 { color: #2c3e50; margin-bottom: 30px; }
+    .btn {
+      display: inline-block;
       background: #3498db;
       color: white;
       border: none;
-      padding: 10px 20px;
+      padding: 15px 30px;
+      margin: 10px;
       border-radius: 8px;
+      font-size: 16px;
       cursor: pointer;
-      width: 100%;
+      text-decoration: none;
     }
-    button:hover {
-      background: #2980b9;
-    }
-    .results {
-      margin-top: 20px;
-      padding: 15px;
-      background: #f9f9f9;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-    }
-    ul {
-      padding-left: 20px;
-    }
+    .btn:hover { background: #2980b9; }
   </style>
 </head>
 <body>
+  <header>
+    <h1>AI Resume Screening System</h1>
+  </header>
+
   <div class="container">
-    <h1>Resume Analyzer</h1>
-    <input type="file" id="resumeFile" accept=".pdf,.docx">
-    <button onclick="uploadResume()">Upload & Analyze</button>
-
-    <div id="results" class="results" style="display:none;">
-      <h2>Analysis Result</h2>
-      <p><strong>Preview Extracted Text:</strong></p>
-      <pre id="preview"></pre>
-      <h3>Suggestions:</h3>
-      <ul id="feedback"></ul>
-    </div>
+    <a href="/company_page" class="btn">Register Company</a>
+    <a href="/candidate_page" class="btn">Candidate Apply / Analyze</a>
   </div>
-
-  <script>
-    async function uploadResume() {
-      const fileInput = document.getElementById("resumeFile");
-      if (!fileInput.files[0]) {
-        alert("Please select a file first!");
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("file", fileInput.files[0]);
-
-      try {
-        const res = await fetch("http://127.0.0.1:5000/upload_resume", {
-          method: "POST",
-          body: formData
-        });
-        const data = await res.json();
-
-        document.getElementById("results").style.display = "block";
-        document.getElementById("preview").textContent = data.extracted_text || "No text extracted.";
-
-        const feedbackList = document.getElementById("feedback");
-        feedbackList.innerHTML = "";
-        if (data.resume_feedback && data.resume_feedback.length > 0) {
-          data.resume_feedback.forEach(item => {
-            const li = document.createElement("li");
-            li.textContent = item;
-            feedbackList.appendChild(li);
-          });
-        } else {
-          feedbackList.innerHTML = "<li>No suggestions found.</li>";
-        }
-      } catch (err) {
-        alert("Error analyzing resume: " + err);
-      }
-    }
-  </script>
 </body>
 </html>
