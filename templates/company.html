@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Company Registration</title>
+</head>
+<body>
+  <h1>Register Company</h1>
+  <form id="companyForm">
+    <label>Company ID: <input type="number" name="company_id" required></label><br>
+    <label>Name: <input type="text" name="name" required></label><br>
+    <label>Skills (comma separated): <input type="text" name="skills"></label><br>
+    <label>Experience (years): <input type="number" name="experience"></label><br>
+    <label>Education (comma separated): <input type="text" name="education"></label><br>
+    <button type="submit">Submit</button>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    document.getElementById("companyForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const body = {
+        company_id: parseInt(formData.get("company_id")),
+        name: formData.get("name"),
+        requirements: {
+          skills: formData.get("skills").split(",").map(s => s.trim()).filter(Boolean),
+          experience: parseInt(formData.get("experience")),
+          education: formData.get("education").split(",").map(s => s.trim()).filter(Boolean)
+        }
+      };
+
+      const res = await fetch("http://127.0.0.1:5000/company", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      document.getElementById("result").innerText = JSON.stringify(data, null, 2);
+    });
+  </script>
+</body>
+</html>
