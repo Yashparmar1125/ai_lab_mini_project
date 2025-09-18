@@ -1,10 +1,12 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 from ai_component import *
 
 # ----------------------------
 # Flask app & routes
 # ----------------------------
-app = Flask(__name__)
+app = Flask(__name__, static_folder='frontend/dist', static_url_path='/static')
+CORS(app)
 
 import os
 import tempfile
@@ -45,6 +47,31 @@ def extract_text_from_file(file_path):
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"})
+
+# Serve React app for all non-API routes
+@app.route("/")
+def serve_index():
+    return app.send_static_file("index.html")
+
+@app.route("/company")
+def serve_company():
+    return app.send_static_file("index.html")
+
+@app.route("/candidate")
+def serve_candidate():
+    return app.send_static_file("index.html")
+
+# Catch-all for other React routes
+@app.route("/<path:path>")
+def serve_react_app(path):
+    # Check if it's a static asset
+    if path.startswith('assets/') or path.endswith(('.js', '.css', '.svg', '.png', '.jpg', '.ico')):
+        try:
+            return app.send_static_file(path)
+        except:
+            pass
+    # For all other routes, serve the React app
+    return app.send_static_file("index.html")
 
 
 # ---- Company endpoints ----
@@ -191,11 +218,13 @@ def upload_resume():
         except Exception as e:
             return jsonify({"error": f"Failed to extract text: {str(e)}"}), 500
 
-        quality = resume_quality(resume_text)
+        # Use comprehensive analysis instead of basic quality check
+        analysis = comprehensive_resume_analysis(resume_text)
 
         return jsonify({
             "extracted_text": resume_text[:1000],  # Preview only
-            "resume_quality": quality
+            "resume_quality": analysis["quality_analysis"],  # Keep backward compatibility
+            "comprehensive_analysis": analysis  # New comprehensive analysis
         })
 
     return jsonify({"error": "Invalid file type (only pdf/docx allowed)"}), 400
@@ -204,21 +233,6 @@ def upload_resume():
 @app.route("/companies", methods=["GET"])
 def list_companies():
     return jsonify([asdict(c) for c in companies.values()])
-
-
-@app.route("/")
-def home():
-    return render_template("index.html")
-
-
-@app.route("/company_page")
-def company_page():
-    return render_template("company.html")
-
-
-@app.route("/candidate_page")
-def candidate_page():
-    return render_template("candidate.html")
 
 
 if __name__ == "__main__":

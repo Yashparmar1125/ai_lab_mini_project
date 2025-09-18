@@ -1,0 +1,10 @@
+flask
+scikit-learn
+nltk
+textstat
+language_tool_python
+pdfplumber
+python-docx
+PyMuPDF
+flask-cors
+waitress
